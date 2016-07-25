@@ -29,9 +29,7 @@ var (
 )
 
 const (
-	WaitForEndpointInterval = 5 * time.Second
-	WaitForEndpointTimeout  = 1 * time.Minute
-	ResyncPeriod            = 1 * time.Minute
+	ResyncPeriod = 1 * time.Minute
 )
 
 type Options struct {
