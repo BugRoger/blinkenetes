@@ -1,6 +1,6 @@
 DATE    = $(shell date +%Y%m%d%H%M) 
 VERSION = v$(DATE) 
-GOOS    ?= linux
+GOOS    ?= darwin
 GOARCH  ?= amd64
 
 LDFLAGS := -X github.com/bugroger/kube-blinkenpad/pkg/blinkenpad.VERSION=$(VERSION) 
@@ -18,7 +18,7 @@ GOFILES  := $(wildcard $(GOFILES))
 all: $(BINARIES:%=bin/$(GOOS)/$(GOARCH)/%)
 
 bin/$(GOOS)/$(GOARCH)/%: $(GOFILES) Makefile
-	GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=1 go build $(GOFLAGS) -v -i -o bin/$(GOOS)/$(GOARCH)/$* ./cmd/$*
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(GOFLAGS) -v -i -o bin/$(GOOS)/$(GOARCH)/$* ./cmd/$*
 
 clean:
 	rm -rf bin/*
