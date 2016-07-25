@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"sync"
 	"time"
 
-	"github.com/IanLewis/launchpad/mk2"
+	"github.com/bugroger/kube-blinkenpad/pkg/mk2"
 	"github.com/golang/glog"
 	"github.com/rakyll/portmidi"
 
@@ -41,6 +42,8 @@ type Blinkenpad struct {
 	pad    *mk2.Launchpad
 	nodes  cache.StoreToNodeLister
 	pods   cache.StoreToPodLister
+
+	sync.RWMutex
 }
 
 func New(opts Options) *Blinkenpad {
@@ -114,6 +117,9 @@ func (b *Blinkenpad) watchPods() {
 }
 
 func (b *Blinkenpad) refresh(message string) {
+	b.Lock()
+	defer b.Unlock()
+
 	fmt.Println(message)
 	fmt.Println(b.getMaxPodsOnAnyNode())
 	for column := 0; column < 8; column++ {
@@ -151,26 +157,26 @@ func (b *Blinkenpad) refreshColumn(i int) {
 	for j := 0; j < notReadyCount; j++ {
 		b.pad.Light(i+1, j+2+readyCount, Red[0], Red[1], Red[2])
 	}
-	for j := 2 + readyCount + notReadyCount; j < 8; j++ {
+	for j := 2 + readyCount + notReadyCount; j < 9; j++ {
 		b.pad.Light(i+1, j, Black[0], Black[1], Black[2])
 	}
 }
 
 func (b *Blinkenpad) getScale() float64 {
 	max := b.getMaxPodsOnAnyNode()
-	if max <= 7 {
+	if max <= 6 {
 		return 1.0
 	}
 
-	if max <= 14 {
+	if max <= 12 {
 		return 0.5
 	}
 
-	if max <= 28 {
+	if max <= 24 {
 		return 0.25
 	}
 
-	if max <= 56 {
+	if max <= 48 {
 		return 0.125
 	}
 
