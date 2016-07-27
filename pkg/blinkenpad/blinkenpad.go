@@ -140,41 +140,45 @@ func (b *Blinkenpad) refreshColumn(i int) {
 	sort.Strings(nodeNames)
 
 	status := b.getNodeStatus(nodeNames[i])
-	ready, notReady := b.getPodStatus(nodeNames[i])
+	greenPods, yellowPods, redPods := b.getPodStatus(nodeNames[i])
 
 	scale := b.getScale()
-	readyCount := (int)(math.Ceil(float64(ready) * scale))
-	notReadyCount := (int)(math.Ceil(float64(notReady) * scale))
+	greenButtons := (int)(math.Ceil(float64(greenPods) * scale))
+	yellowButtons := (int)(math.Ceil(float64(yellowPods) * scale))
+	redButtons := (int)(math.Ceil(float64(redPods) * scale))
 
-	fmt.Printf("Column %v, %v: %v, ready: %v %v, notReady: %v %v\n", nodeNames[i], i, status, ready, readyCount, notReady, notReadyCount)
+	fmt.Printf("Column %v, %v: %v, green: %v/%v, yellow: %v/%v red: %v/%v\n", nodeNames[i], i, status, greenPods, greenButtons, yellowPods, yellowButtons, redPods, redButtons)
 
 	b.pad.Light(i+1, 1, status[0], status[1], status[2])
-	for j := 2; j < readyCount+2; j++ {
-		b.pad.Light(i+1, j, Green[0], Green[1], Green[2])
+	for j := 0; j < greenButtons; j++ {
+		b.pad.Light(i+1, j+2, Green[0], Green[1], Green[2])
 	}
-	for j := 0; j < notReadyCount; j++ {
-		b.pad.Light(i+1, j+2+readyCount, Red[0], Red[1], Red[2])
+	for j := 0; j < yellowButtons; j++ {
+		b.pad.Light(i+1, j+2+greenButtons, Yellow[0], Yellow[1], Yellow[2])
 	}
-	for j := 2 + readyCount + notReadyCount; j < 9; j++ {
+	for j := 0; j < redButtons; j++ {
+		b.pad.Light(i+1, j+2+greenButtons+yellowButtons, Red[0], Red[1], Red[2])
+	}
+	for j := 2 + greenButtons + yellowButtons + redButtons; j < 9; j++ {
 		b.pad.Light(i+1, j, Black[0], Black[1], Black[2])
 	}
 }
 
 func (b *Blinkenpad) getScale() float64 {
 	max := b.getMaxPodsOnAnyNode()
-	if max <= 6 {
+	if max <= 5 {
 		return 1.0
 	}
 
-	if max <= 12 {
+	if max <= 10 {
 		return 0.5
 	}
 
-	if max <= 24 {
+	if max <= 20 {
 		return 0.25
 	}
 
-	if max <= 48 {
+	if max <= 40 {
 		return 0.125
 	}
 
@@ -216,15 +220,22 @@ func (b *Blinkenpad) getNodeStatus(name string) [3]int {
 	return Red
 }
 
-func (b *Blinkenpad) getPodStatus(node string) (ready, notReady int) {
+func (b *Blinkenpad) getPodStatus(node string) (green, yellow, red int) {
 	pods, err := b.pods.ByIndex("node", node)
 	b.handleError(err)
 
 	for _, pod := range pods {
-		if api.IsPodReady(pod.(*api.Pod)) {
-			ready++
-		} else {
-			notReady++
+		switch b.fishForPodStatus(pod.(*api.Pod)) {
+		case "Running":
+			green++
+		case "Pending":
+			yellow++
+		case "Terminating":
+			yellow++
+		case "ContainerCreating":
+			yellow++
+		default:
+			red++
 		}
 	}
 
